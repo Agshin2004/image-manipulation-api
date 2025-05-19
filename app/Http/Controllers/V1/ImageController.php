@@ -11,6 +11,8 @@ use Illuminate\Http\UploadedFile;
 
 class ImageController extends Controller
 {
+    use \App\Http\Controllers\Traits\ImageTrait;
+
     public function index()
     {
         //
@@ -50,18 +52,29 @@ class ImageController extends Controller
             $data['name'] = $image->getClientOriginalName();
             $filename = pathinfo($data['name'], PATHINFO_FILENAME);
             $extension = $image->getClientOriginalExtension();
+
             // move image to newly created folder with the getClientOriginalName() that we assigned to $data['name']
             $image->move($absolutePath, $data['name']);
+            $fullImagePath = $absolutePath . $data['name'];
         } else {
             // Handle image passed as url
             $data['name'] = pathinfo($image, PATHINFO_BASENAME);  // Using pathinfo here because image was passed as url and we need to access image from different url
             $filename = pathinfo($image, PATHINFO_FILENAME);
             $extension = pathinfo($image, PATHINFO_EXTENSION);
+            $fullImagePath = $absolutePath . $data['name'];
 
-            copy($image, $absolutePath . $data['name']); // copy image from different server
+            copy($image, $fullImagePath);  // copy image from different server
         }
         // Save the relative path of the image willl be stored in DB later, allowing access via URL
         $data['path'] = $dir . $data['name'];
+
+        $w = $allData['w'];
+        $h = $allData['h'] ?? false;
+
+        // unpack the return valies to the $width and $height (array like [1, 2] must be returned to succesffuly unpack it)
+        // list($width, $height) -> method could be used but array destructuring in shorter
+        [$width, $height] = $this->getImageWidthAndHeight($w, $h, $fullImagePath);
+        dd($width, $height);
     }
 
     public function byAlbum(Album $album) {}

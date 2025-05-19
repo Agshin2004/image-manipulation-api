@@ -60,8 +60,29 @@ class ImageController extends Controller
             // Handle image passed as url
             $data['name'] = pathinfo($image, PATHINFO_BASENAME);  // Using pathinfo here because image was passed as url and we need to access image from different url
             $filename = pathinfo($image, PATHINFO_FILENAME);
-            $extension = pathinfo($image, PATHINFO_EXTENSION);
-            $fullImagePath = $absolutePath . $data['name'];
+            // pathinfo() is only useful when url contains filename+extension but there is not always
+            // extension in url to tackle that logic was replaced below
+            // $extension = pathinfo($image, PATHINFO_EXTENSION);
+
+            // get_headers under the hood makes HEAD request to get headers
+            // actual image is downloaded below in using copy() method
+            $headers = get_headers($image, 1);
+            if (isset($headers['Content-Type'])) {
+                $mime = is_array($headers['Content-Type']) ? $headers['Content-Type'][0] : $headers['Content-Type'];
+                $extension = match ($mime) {
+                    'image/jpeg' => 'jpg',
+                    'image/png' => 'png',
+                    'image/gif' => 'gif',
+                    'image/webp' => 'webp',
+                    default => 'jpg'  // fallback to jpg
+                };
+            } else {
+                $extension = 'jpg';  // falback if content type missing
+            }
+
+            // condition to check if filename already contains extension, if not then concatinate extension
+            $hasExtension = (pathinfo($data['name'], PATHINFO_EXTENSION) === '' ? $extension : '');
+            $fullImagePath = $absolutePath . $data['name'] . '.' . $hasExtension;
 
             copy($image, $fullImagePath);  // copy image from different server
         }
@@ -73,8 +94,15 @@ class ImageController extends Controller
 
         // unpack the return valies to the $width and $height (array like [1, 2] must be returned to succesffuly unpack it)
         // list($width, $height) -> method could be used but array destructuring in shorter
-        [$width, $height] = $this->getImageWidthAndHeight($w, $h, $fullImagePath);
-        dd($width, $height);
+        [$width, $height, $image] = $this->getImageWidthAndHeight($w, $h, $fullImagePath);
+
+        $resizedFilename = "{$filename}-resized.{$extension}";
+        $image->resize($width, $height)->save($absolutePath . $resizedFilename);
+        $data['output_path'] = $dir . $resizedFilename;  // path to the modified image (modified image and not modified stored in same folder)
+
+        $savedImagedData = Image::create($data);
+
+        return $savedImagedData;
     }
 
     public function byAlbum(Album $album) {}

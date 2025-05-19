@@ -31,6 +31,6 @@ trait ImageTrait
             $newHeight = $height ? (float) $height : $originalHeight * $newWidth / $originalWidth;
         }
 
-        return [$newWidth, $newHeight];
+        return [$newWidth, $newHeight, $image];
     }
 }

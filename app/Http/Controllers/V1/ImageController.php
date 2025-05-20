@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\V1;
 
-use App\Http\Controllers\Controller;
-use App\Http\Requests\V1\ResizeImageRequest;
-use App\Http\Requests\UpdateImageRequest;
 use App\Models\Album;
 use App\Models\Image;
 use Illuminate\Http\UploadedFile;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\V1\ImageResource;
+use App\Http\Requests\UpdateImageRequest;
+use App\Http\Requests\V1\ResizeImageRequest;
 
 class ImageController extends Controller
 {
@@ -102,18 +103,12 @@ class ImageController extends Controller
 
         $savedImagedData = Image::create($data);
 
-        return $savedImagedData;
+        return new ImageResource($savedImagedData);
     }
 
     public function byAlbum(Album $album) {}
 
-    public function show(Image $image)
-    {
-        //
-    }
+    public function show(Image $image) {}
 
-    public function destroy(Image $image)
-    {
-        //
-    }
+    public function destroy(Image $image) {}
 }

@@ -12,7 +12,7 @@ class ResizeImageRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // fixme
+        return true;  // fixme
     }
 
     /**

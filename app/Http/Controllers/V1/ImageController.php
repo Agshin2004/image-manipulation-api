@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\V1;
 
+use App\Http\Controllers\Controller;
+use App\Http\Requests\V1\ResizeImageRequest;
+use App\Http\Requests\UpdateImageRequest;
+use App\Http\Resources\V1\ImageResource;
 use App\Models\Album;
 use App\Models\Image;
 use Illuminate\Http\UploadedFile;
-use App\Http\Controllers\Controller;
-use App\Http\Resources\V1\ImageResource;
-use App\Http\Requests\UpdateImageRequest;
-use App\Http\Requests\V1\ResizeImageRequest;
 
 class ImageController extends Controller
 {
@@ -16,7 +16,31 @@ class ImageController extends Controller
 
     public function index()
     {
-        //
+        // Collection - Used for: A collection of model instances (e.g., from all(), get(), or paginate())
+        // Resource - Used for: A single model instance
+        return ImageResource::collection(Image::paginate());
+    }
+
+    public function byAlbum(Album $album)
+    {
+        $where = [
+            'album_id' => $album->id,
+        ];
+        return ImageResource::collection(Image::where($where)->paginate());
+    }
+
+    public function show(Image $image)
+    {
+        // Since Resource is used for a single model instance
+        // and we return single image we must use ImageResource
+        // But above in index we used collection because we were returning all of the images
+        return new ImageResource($image);
+    }
+
+    public function destroy(Image $image) 
+    {
+        $image->delete();
+        return response(status: 204);
     }
 
     public function resize(ResizeImageRequest $request)
@@ -105,10 +129,4 @@ class ImageController extends Controller
 
         return new ImageResource($savedImagedData);
     }
-
-    public function byAlbum(Album $album) {}
-
-    public function show(Image $image) {}
-
-    public function destroy(Image $image) {}
 }

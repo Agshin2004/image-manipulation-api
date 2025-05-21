@@ -4,21 +4,21 @@ namespace App\Http\Controllers\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\V1\ResizeImageRequest;
-use App\Http\Requests\UpdateImageRequest;
 use App\Http\Resources\V1\ImageResource;
 use App\Models\Album;
 use App\Models\Image;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 
 class ImageController extends Controller
 {
     use \App\Http\Controllers\Traits\ImageTrait;
 
-    public function index()
+    public function index(Request $request)
     {
         // Collection - Used for: A collection of model instances (e.g., from all(), get(), or paginate())
         // Resource - Used for: A single model instance
-        return ImageResource::collection(Image::paginate());
+        return ImageResource::collection(Image::where('user_id' ,$request->user()->id)->paginate());
     }
 
     public function byAlbum(Album $album)
@@ -29,16 +29,22 @@ class ImageController extends Controller
         return ImageResource::collection(Image::where($where)->paginate());
     }
 
-    public function show(Image $image)
+    public function show(Request $request, Image $image)
     {
+        if ($request->user()->id !== $image->id)
+            return response()->json(['message' => 'unauthorized'], 401);
+
         // Since Resource is used for a single model instance
         // and we return single image we must use ImageResource
         // But above in index we used collection because we were returning all of the images
         return new ImageResource($image);
     }
 
-    public function destroy(Image $image) 
+    public function destroy(Request $request, Image $image)
     {
+        if ($request->user()->id !== $image->id)
+            return response()->json(['message' => 'unauthorized'], 401);
+
         $image->delete();
         return response(status: 204);
     }
@@ -52,17 +58,19 @@ class ImageController extends Controller
 
         // Removing image key from the $allData array because $allData will be saved in db and the actual image file doesn't need to be stored in the JSON
         unset($allData['image']);
-
         // prepare data to be saved in database
         $data = [
             'type' => Image::TYPE_RESIZE,  // marks the image operation
             'data' => json_encode($allData),
-            'user_id' => null  // TODO: fix
+            'user_id' => $request->user()->id
         ];
 
         // if album_id was passed then attach that image to the album
         if (isset($allData['album_id'])) {
-            // TODO:
+            $album = Album::find($allData['album_id']); // find a model by its primary key
+            if ($request->user()->id !== $album->user_id)
+                return response()->json(['message' => 'unauthorized'], 401);
+
             $data['album_id'] = $allData['album_id'];
         }
 
